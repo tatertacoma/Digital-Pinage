@@ -1,0 +1,14 @@
+[Unit]
+Description=pignage Sync Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/pignage
+ExecStart=/home/admin/pignage/sync.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

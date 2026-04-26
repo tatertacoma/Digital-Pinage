@@ -1,0 +1,24 @@
+[Unit]
+Description=Pignage Display Service
+After=getty@tty1.service systemd-user-sessions.service
+Conflicts=getty@tty1.service
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin
+
+StandardInput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+PAMName=login
+
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/admin/.Xauthority
+
+ExecStart=/usr/bin/startx /home/admin/pignage/display.sh
+
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

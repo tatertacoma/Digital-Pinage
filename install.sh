@@ -21,7 +21,7 @@ fi
 # CONFIG
 
 USER="${SUDO_USER:-$(id -un)}"
-BASE_DIR="/home/$USER/pinage"
+BASE_DIR="/home/$USER/pignage"
 
 read -p "Have you configured rclone? (y/N): " answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
@@ -36,12 +36,12 @@ fi
 mkdir -p "$BASE_DIR"/{new,act,old}
 
 #Make .conf
-cat <<EOF > "$BASE_DIR/pinage.conf"
+cat <<EOF > "$BASE_DIR/pignage.conf"
 REMOTE="$remote"
 SYNC_TIME=300
 SLIDE_TIME=10
 EOF
-chown "$USER:$USER" "$BASE_DIR/pinage.conf"
+chown "$USER:$USER" "$BASE_DIR/pignage.conf"
 echo "Config Made"
 
 # -DISPLAY SCRIPT-
@@ -53,7 +53,7 @@ SLIDE_TIME=10
 BASE_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
 ACT_DIR="\$BASE_DIR/act"
 
-CONFIG="\$BASE_DIR/pinage.conf"
+CONFIG="\$BASE_DIR/pignage.conf"
 [ -f "\$CONFIG" ] && source "\$CONFIG"
 
 
@@ -81,7 +81,7 @@ NEW_DIR="\$BASE_DIR/new"
 ACT_DIR="\$BASE_DIR/act"
 OLD_DIR="\$BASE_DIR/old"
 
-CONFIG="\$BASE_DIR/pinage.conf"
+CONFIG="\$BASE_DIR/pignage.conf"
 [ -f "\$CONFIG" ] && source "\$CONFIG"
 
 #Main Sync Script
@@ -115,35 +115,39 @@ chmod +x "$BASE_DIR/sync.sh"
 
 # -SERVICES-
 read -p "Would you like configure services? (Recommended, requires sudo) (Y/n): " answer
-if [[ "$answer" =~ ^[Yy]$ ]]; then
+if [[ ! "$answer" =~ ^[Nn]$ ]]; then
 	echo "Ok"
-	sudo bash -c "cat > "/etc/systemd/system/pinage-display.service"" << EOF
+	sudo bash -c "cat > "/etc/systemd/system/pignage-display.service"" << EOF
 [Unit]
-Description=Pinage Display Service
-After=systemd-user-sessions.service network.target
+Description=Pignage Display Service
+After=getty@tty1.service systemd-user-sessions.service
+Conflicts=getty@tty1.service
 
 [Service]
 User=$USER
-WorkingDirectory=$BASE_DIR
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/admin/.Xauthority
+WorkingDirectory=/home/$USER
 
-ExecStart=/usr/bin/startx $BASE_DIR/display.sh -- :0
+StandardInput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+PAMName=login
+
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/$USER/.Xauthority
+
+ExecStart=/usr/bin/startx $BASE_DIR/display.sh
 
 Restart=always
 RestartSec=15
-
-TTYPath=/dev/tty1
-Standardinput=tty
 
 [Install]
 WantedBy=multi-user.target
 EOF
 	echo "Display Service Configured"
 
-	sudo bash -c "cat > "/etc/systemd/system/pinage-sync.service"" <<EOF
+	sudo bash -c "cat > "/etc/systemd/system/pignage-sync.service"" <<EOF
 [Unit]
-Description=Pinage Sync Service
+Description=pignage Sync Service
 After=network-online.target
 Wants=network-online.target
 
@@ -158,34 +162,23 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 	echo "Sync Service Configured"
+	echo "Reloading daemon"
 	sudo systemctl daemon-reexec
 	sudo systemctl daemon-reload
-	read -c "Would you like to start the services now? (y/N): " answer
-	if [[ "$answer" =~ ^[Yy]$ ]]; then
-		sudo systemctl enable pinage-sync
-		sudo systemctl enable pinage-display
-		echo "Services Started, will start on boot as well"
+	read -p "Would you like to enable services? (Y/n): " answer
+	if [[ "$answer" =~ ^[Nn]$ ]]; then
+		echo "Ok, re-run script to set-up services..."
+		echo "or read readme.md on how to do it manually"
+	else
+		sudo systemctl enable pignage-display
+		sudo systemctl enable pignage-sync
+		echo "Services enabled..."
+		echo "Reboot to enter slideshow"
 	fi
 else
 	echo "Service not configured..."
+	echo "Read readme.md or rerun install.sh to configure"
 fi
-echo "Use sudo systemctl {start/stop} pinage-display"
-echo "and sudo systemctl {start/stop} pinage-sync"
-echo "to start and stop the services..."
+
 sleep 1
-echo "Setup Complete
-if [[ "$answer" =~ ^[Yy]$ ]]; then
-	sudo systemctl start pinage-sync
-	sudo systemctl start pinage-display
-fi
 echo "done"
-
-
-
-
-
-
-
-
-
-
